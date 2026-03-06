@@ -1,0 +1,111 @@
+#! /usr/bin/bash
+
+help="\
+This is a trash/restore tool:
+Usage:
+    get logs: $0 -l
+    trash file: $0 <file> <file> ...
+    restore file: $0 -r <file/folder name>
+    restore to custom path: $0 -p <custom path> -r <file/folder name>
+    empty trash: $0 -e <date/'now'>     Format: 'DD/MM,HH:MM:SS'
+"
+
+TRASH=true
+LOG=false
+R_FILE=""
+E_DATE=""
+R_PATH=""
+while getopts 'h?lr:e:p:' opt; do
+    case "$opt" in
+        h) printf "$help"; exit 0;;
+        l) LOG=true;;
+        r) R_FILE=$OPTARG;;
+        e) E_DATE=$OPTARG;;
+        p) R_PATH=$OPTARG;;
+    esac
+    TRASH=false
+done
+shift $((OPTIND - 1))
+
+BIN_PATH="$HOME/.local/.trash"
+LOG_FILE="$BIN_PATH/.trashing.log"
+
+trash() {
+    mkdir -p $BIN_PATH
+    [ ! -f $LOG_FILE ] && touch $LOG_FILE
+    local error="\e[31;1mE - missing:"
+    for file in "$@"; do
+        [ ! -e "$file" ] && error="$error $file" && continue
+        file=$(realpath $file)
+        local trashFile=$file
+        while [ -e $trashFile ]; do
+            trashFile="$BIN_PATH/`< /dev/urandom tr -dc 'A-Za-z0-9' | head -c 15`"
+        done
+        mv $file $trashFile
+        [ -d $trashFile ] && file="$file/"
+        echo "[`date`] $file:$trashFile" >> $LOG_FILE
+        chmod 440 -R $trashFile
+    done
+    [ "$error" = "\e[31;1mE - missing:" ] && return 0
+    echo -e "\a$error\e[0m (else remove spaces on file name)" >&2
+    return 1 
+}
+
+log() {
+    [ ! -f $LOG_FILE ] && echo -e "\e[33;1mW - No logs available\e[0m" >&2 && return 0
+    cat -n $LOG_FILE | tr -d '[' | cut -d: -f1,2,3 | column -t -s ] -N "        DATE TRASHED","   FILE NAME" | less
+}
+
+restore() {
+    [ ! -f $LOG_FILE ] && echo -e "\e[33;1mW - Nothing to restore, else confirm log file\e[0m" >&2 && return 0
+    if [ -n "$R_PATH" ]; then
+        R_PATH=$(realpath $R_PATH 2>/dev/null)
+        [ -z "$R_PATH" ] && echo -e "\e[31;1mE - Invalid recovery path!\e[0m" >&2 && return 1
+    fi
+
+    local TARGET_FILES=($(cut -d] -f2 $LOG_FILE | cut -d: -f1 | tr ' ' '\n' | grep -E "(/$R_FILE$|/$R_FILE/$)"))
+    [ -z "$TARGET_FILES" ] && echo -e "\e[31;1mE - File '$R_FILE' not found, else confirm log file\e[0m" >&2 && return 1 
+
+    if [ ${#TARGET_FILES[@]} -ne 1 ]; then
+        local CHOICES=()
+        for TARGET in ${TARGET_FILES[@]}; do
+            CHOICES[${#CHOICES[@]}]="$(cut -d: -f1,2,3 $LOG_FILE | grep -e "$TARGET$" | tr ' ' '_')"
+        done
+        select TARGET in ${CHOICES[@]}; do
+            [ -n "$TARGET" ] && TARGET_FILES="$(echo $TARGET | tr '[]' '%')" && break
+        done
+    else
+        TARGET_FILES="${TARGET_FILES[0]}"
+    fi
+    local FILE=$(cat $LOG_FILE | tr ' ' '_' | tr '[]' '%' | grep "$TARGET_FILES" | cut -d: -f4)
+    local REAL_PATH="$(cat $LOG_FILE | grep "$FILE" | cut -d] -f2 | cut -d: -f1 | tr -d ' ')"
+    [ -d $FILE ] && REAL_PATH="${REAL_PATH%?}"
+    [ -z "$R_PATH" ] && R_PATH="${REAL_PATH%/*}"
+    FILE_NAME="${REAL_PATH##*/}"
+    [ -f $R_PATH ] && echo -e "\e[31;1mE - File '$R_PATH' conficts, specify recovery path!\e[0m" >&2 && return 1
+    [ ! -d $R_PATH ] && mkdir -p $R_PATH
+    chmod 664 $FILE
+    mv $FILE $R_PATH/$FILE_NAME
+    echo -e "\e[32;1mI - Recovered to '$R_PATH'\e[0m"
+    local LINE_NUMBER=$(grep -n "$FILE" $LOG_FILE | cut -d: -f1)
+    sed -i "${LINE_NUMBER}d" $LOG_FILE
+    return 0
+}
+
+if $TRASH; then
+    if [ $# -eq 0 ]; then
+        printf "Missing input!\n"
+        printf "$help"
+        exit 1
+    fi
+    trash $@
+    exit $?
+elif $LOG; then
+    log
+    exit 0
+elif [ -n "$R_FILE" ]; then
+    restore
+    exit $?
+elif [ -n "$E_DATE" ]; then
+    echo "processing"
+fi
