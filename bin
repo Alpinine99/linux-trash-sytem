@@ -115,6 +115,7 @@ empty() {
     [ $EPOCH -gt $EPOCHSECONDS ] && echo -e "\e[31;1mE - Invalid date (future date)!\e[0m" >&2 && return 1
     if [ "$E_DATE" = "now" ]; then
         rm -rf $BIN_PATH/*
+        rm -rf $LOG_FILE
         printf "\033[32;1mI - Everything cleared in trash!\033[0m\n"
     else
         local N_FILES=0

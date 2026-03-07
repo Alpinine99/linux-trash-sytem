@@ -1,0 +1,65 @@
+#! /usr/bin/env bash
+
+printf "\033[1m[x] Checking shc... "
+if which shc >/dev/null 2>&1; then
+    printf "\033[32myes\033[0m\n"
+else
+    printf "\033[31mno\033[0m\n"
+    printf " >>> visit \033[4mhttps://github.com/neurobin/shc.git\033[0m and install\n"
+    exit 1
+fi
+
+printf "\033[1m[x] Checking make... "
+if which make >/dev/null 2>&1; then
+    printf "\033[32myes\033[0m\n"
+else
+    printf "\033[31mno\033[0m\n"
+    printf ">>> Install using package manager\n"
+    exit 1
+fi
+
+printf "\033[1m[x] Checking bash... "
+if which bash >/dev/null 2>&1; then
+    printf "\033[32myes\033[0m\n"
+else
+    printf "\033[31mno\033[0m\n"
+    printf ">>> Install using package manager\n"
+    exit 1
+fi
+
+printf "\033[1m[x] Checking path... "
+if echo $PATH | grep -q "$HOME/.local/.bin"; then
+    printf "\033[32myes\033[0m\n"
+else
+    printf "\033[31mno\033[0m\n"
+    printf "\033[1m[x] Configuring path... "
+    case "$SHELL" in
+        *bash*) RC_FILE="$HOME/.bashrc" ;;
+        *zsh*) RC_FILE="$HOME/.zshrc" ;;
+        *fish*) RC_FILE="$HOME/.config/fish/config.fish" ;;
+        *) RC_FILE="" ;;
+    esac
+
+    mkdir -p $HOME/.local/.bin
+    if [ -n "$RC_FILE" ]; then
+        echo -e "\nexport PATH=\"$PATH:$HOME/.local/.bin\"" >> $RC_FILE
+    else
+        printf "\033[31mno\033[0m\n"
+        printf ">>> Add the line 'export PATH=\"$PATH:$HOME/.local/.bin\"' to your shell rc file, then restart your shell\n"
+        exit 1
+    fi
+    printf "\033[32myes\033[0m\n"
+    printf "\033[33;1m[*] Shell restart required\033[0m\n"
+fi
+
+printf "\033[1m[x] Configuring shebang... "
+bash_path=$(which bash)
+sed -i "1c\#! $bash_path" ./bin 2>/dev/null
+if [ $? -ne 0 ]; then
+    printf "\033[31mno\033[0m\n"
+    printf "Confirm the file 'bin' is present\n"
+    exit 1
+fi
+printf "\033[32myes\033[0m\n"
+printf "\033[34;1m[*] All set, run 'make'\033[0m\n"
+exit 0
