@@ -28,7 +28,8 @@ else
 fi
 
 printf "\033[1m[x] Checking path... "
-if echo $PATH | grep -q "$HOME/.local/.bin"; then
+mkdir -p $HOME/.local/bin
+if echo $PATH | grep -q "$HOME/.local/bin"; then
     printf "\033[32myes\033[0m\n"
 else
     printf "\033[31mno\033[0m\n"
@@ -40,12 +41,11 @@ else
         *) RC_FILE="" ;;
     esac
 
-    mkdir -p $HOME/.local/.bin
     if [ -n "$RC_FILE" ]; then
-        echo -e "\nexport PATH=\"$PATH:$HOME/.local/.bin\"" >> $RC_FILE
+        echo -e "\nexport PATH=\"$PATH:$HOME/.local/bin\"" >> $RC_FILE
     else
         printf "\033[31mno\033[0m\n"
-        printf ">>> Add the line 'export PATH=\"$PATH:$HOME/.local/.bin\"' to your shell rc file, then restart your shell\n"
+        printf ">>> Add the line 'export PATH=\"$PATH:$HOME/.local/bin\"' to your shell rc file, then restart your shell\n"
         exit 1
     fi
     printf "\033[32myes\033[0m\n"
