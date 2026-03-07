@@ -1,13 +1,19 @@
 #! /usr/bin/bash
 
 help="\
-This is a trash/restore tool:
-Usage:
+\e[1mDetails:\e[0m
+    This is a trash/restore tool
+\e[1mUsage:\e[0;33m
     get logs: $0 -l
     trash file: $0 <file> <file> ...
     restore file: $0 -r <file/folder name>
     restore to custom path: $0 -p <custom path> -r <file/folder name>
-    empty trash: $0 -e <date/'now'>     Format: 'DD/MM,HH:MM:SS'
+    empty trash: $0 -e <date/'now'> <up/down>
+                 $0 -e \"Fri Mar  6 11:57:43 PM EAT 2026\" up      # deletes from set date up
+                 $0 -e \"Fri Jan  6 12:57:43 PM EAT 2026\" down    # deletes from set date down
+
+\e[0;1mDocumentation and examples:\e[0;33m
+    Check out \e[4;1mhttps://github.com/Alpinine99/trashing-recovery-system.git\e[0m for more.
 "
 
 TRASH=true
@@ -20,7 +26,7 @@ while getopts 'h?lr:e:p:' opt; do
         h) printf "$help"; exit 0;;
         l) LOG=true;;
         r) R_FILE=$OPTARG;;
-        e) E_DATE=$OPTARG;;
+        e) E_DATE="$OPTARG";;
         p) R_PATH=$OPTARG;;
     esac
     TRASH=false
@@ -53,7 +59,7 @@ trash() {
 
 log() {
     [ ! -f $LOG_FILE ] && echo -e "\e[33;1mW - No logs available\e[0m" >&2 && return 0
-    cat -n $LOG_FILE | tr -d '[' | cut -d: -f1,2,3 | column -t -s ] -N "        DATE TRASHED","   FILE NAME" | less
+    tac $LOG_FILE | tr -d '[' | cut -d: -f1,2,3 | column -t -s ] -N "DATE TRASHED"," FILE NAME" | less
 }
 
 restore() {
@@ -92,9 +98,53 @@ restore() {
     return 0
 }
 
+empty() {
+    [ ! -f $LOG_FILE ] && echo -e "\e[33;1mW - Nothing to clean!\e[0m" >&2 && return 0
+    # Fri Mar  6 11:57:43 PM EAT 2026
+    if ! echo "$E_DATE" | grep -E -q '^[A-Z][a-z]{2} [A-Z][a-z]{2} [ ]?[0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2} [AP]M [A-Z]{3} [0-9]{4}$' && [ "$E_DATE" != "now" ]; then
+        echo -e "\e[31;1mE - Invalid date format!\e[0m" >&2
+        return 1
+    fi
+    [ -z "$1" ] && FILTER="down" || FILTER="$1"
+    if [ "$E_DATE" = "now" ]; then
+        local EPOCH=$EPOCHSECONDS
+    else
+        local EPOCH=$(date -d "$E_DATE" +%s 2>&1)
+        [ -n "$(echo "$EPOCH" | grep "invalid")" ] && echo -e "\e[31;1mE - Invalid date (unreal date)!\e[0m" >&2 && return 1
+    fi
+    [ $EPOCH -gt $EPOCHSECONDS ] && echo -e "\e[31;1mE - Invalid date (future date)!\e[0m" >&2 && return 1
+    if [ "$E_DATE" = "now" ]; then
+        rm -rf $BIN_PATH/*
+        printf "\033[32;1mI - Everything cleared in trash!\033[0m\n"
+    else
+        local N_FILES=0
+        while read -r LOG; do
+            local C_EPOCH=$(date -d "$(echo "$LOG" | cut -d[ -f2 | cut -d] -f1)" +%s)
+            local FILE=$(echo "$LOG" | cut -d: -f4)
+            if [ "$FILTER" == "down" ]; then
+                if ((C_EPOCH <= EPOCH)); then
+                    rm -rf $FILE
+                    local LINE_NUMBER=$(grep -n "$FILE" $LOG_FILE | cut -d: -f1)
+                    sed -i "${LINE_NUMBER}d" $LOG_FILE
+                    ((N_FILES++))
+                fi
+            else
+                if ((C_EPOCH >= EPOCH)); then
+                    rm -rf $FILE
+                    local LINE_NUMBER=$(grep -n "$FILE" $LOG_FILE | cut -d: -f1)
+                    sed -i "${LINE_NUMBER}d" $LOG_FILE
+                    ((N_FILES++))
+                fi
+            fi
+        done < "$LOG_FILE"
+        printf "\033[32;1mI - $N_FILES files cleared in trash!\033[0m\n"
+    fi
+    return 0
+}
+
 if $TRASH; then
     if [ $# -eq 0 ]; then
-        printf "Missing input!\n"
+        printf "\033[31;1mE - Missing input!\033[0m\n"
         printf "$help"
         exit 1
     fi
@@ -107,5 +157,6 @@ elif [ -n "$R_FILE" ]; then
     restore
     exit $?
 elif [ -n "$E_DATE" ]; then
-    echo "processing"
+    empty $@
+    exit $?
 fi
