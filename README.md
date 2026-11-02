@@ -11,50 +11,30 @@ This is a trash/restore tool implemented in shell script and compiled to a binar
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Alpinine99/trashing-recovery-system.git
-   cd trashing-recovery-system
+   git clone https://github.com/Alpinine99/linux-trash-sytem.git binsys
+   cd binsys
    ```
 
-2. Run `./configure` to create and confirm a compatible environment:
+2. Run `./install.sh` to create and confirm a compatible environment then install:
 
    ```bash
-   ./configure
+   ./install.sh
    ```
 
    > instructions are given in case of incompatibility, such as missing dependencies.
-
-3. In case of a success message from `./configure` run `make` to compile the binary.
-
-    ```bash
-    make
-    ```
-
-4. You can test the binary from the current directory:
-
-    ```bash
-    ./binx -h
-    ```
-
-5. Install the binary:
-
-    ```bash
-    make install
-    ```
-
-    > **NOTE:** The binary is installed on user space and so no sudo required, the binary is only available to the current user.
 
 ## 🗑️ Uninstallation
 
 1. Move back to the project folder:
 
     ```bash
-    cd trashing-recovery-system
+    cd binsys
     ```
 
-2. Run `make uninstall` to remove the binary:
+2. Run `./uninstall.sh` to remove the binary:
 
     ```bash
-    make uninstall
+    ./uninstall.sh
     ```
 
 > The script uses `bash` and standard Unix utilities such as `mv`, `date`, and `tac`.
@@ -63,29 +43,29 @@ This is a trash/restore tool implemented in shell script and compiled to a binar
 
 ```bash
 # view this help message
-binx -h
+trash -h
 
 # get logs
-binx -l
+trash -l
 
 # trash one or more files or directories
-binx <file> <file> ...
+trash <file> <file> ...
 
 # restore an item (name or folder)
-binx -r <file/folder name>
+trash -r <file/folder name>
 
 # restore an item to a custom path
-binx -p <custom path> -r <file/folder name>
+trash -p <custom path> -r <file/folder name>
 
 # empty trash using a date filter
-binx -e <date/"now"> <up/down>
+trash -e <date/"now"> <up/down>
 
 # examples for emptying:
-binx -e "Fri Mar  6 11:57:43 PM EAT 2026" up      # deletes from set date up
-binx -e "Fri Jan  6 12:57:43 PM EAT 2026" down    # deletes from set date down
+trash -e "Fri Mar  6 11:57:43 PM EAT 2026" up      # deletes from set date up
+trash -e "Fri Jan  6 12:57:43 PM EAT 2026" down    # deletes from set date down
 
 # clear everything immediately
-binx -e now
+trash -e now
 ```
 
 ## 📦 Behavior
