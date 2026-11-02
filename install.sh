@@ -1,22 +1,5 @@
 #! /usr/bin/env bash
 
-printf "\033[1m[x] Checking shc... "
-if which shc >/dev/null 2>&1; then
-    printf "\033[32myes\033[0m\n"
-else
-    printf "\033[31mno\033[0m\n"
-    printf " >>> visit \033[4mhttps://github.com/neurobin/shc.git\033[0m and install\n"
-    exit 1
-fi
-
-printf "\033[1m[x] Checking make... "
-if which make >/dev/null 2>&1; then
-    printf "\033[32myes\033[0m\n"
-else
-    printf "\033[31mno\033[0m\n"
-    printf ">>> Install using package manager\n"
-    exit 1
-fi
 
 printf "\033[1m[x] Checking bash... "
 if which bash >/dev/null 2>&1; then
@@ -54,12 +37,21 @@ fi
 
 printf "\033[1m[x] Configuring shebang... "
 bash_path=$(which bash)
-sed -i "1c\#! $bash_path" ./bin 2>/dev/null
+sed -i "1c\#! $bash_path" ./trash.sh 2>/dev/null
+if [ $? -ne 0 ]; then
+    printf "\033[31mno\033[0m\n"
+    printf "Confirm the file 'trash.sh' is present\n"
+    exit 1
+fi
+
+printf "\033[1m[x] Installing script ... "
+cp ./trash.sh $HOME/.local/bin/trash && chmod u+x $HOME/.local/bin/trash
 if [ $? -ne 0 ]; then
     printf "\033[31mno\033[0m\n"
     printf "Confirm the file 'bin' is present\n"
     exit 1
 fi
+
 printf "\033[32myes\033[0m\n"
 printf "\033[34;1m[*] All set, run 'make'\033[0m\n"
 exit 0
