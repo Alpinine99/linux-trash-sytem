@@ -61,8 +61,9 @@ trash -p <custom path> -r <file/folder name>
 trash -e <date/"now"> <up/down>
 
 # examples for emptying:
-trash -e "Fri Mar  6 11:57:43 PM EAT 2026" up      # deletes from set date up
-trash -e "Fri Jan  6 12:57:43 PM EAT 2026" down    # deletes from set date down
+trash -e <date|epoch|'now'> <up|down>
+trash -e "2026-03-06 23:57:43" up    # deletes from set date up
+trash -e "7 days ago" down           # deletes from set date down
 
 # clear everything immediately
 trash -e now
