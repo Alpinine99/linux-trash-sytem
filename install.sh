@@ -48,7 +48,7 @@ printf "\033[1m[x] Installing script ... "
 cp ./trash.sh $HOME/.local/bin/trash && chmod u+x $HOME/.local/bin/trash
 if [ $? -ne 0 ]; then
     printf "\033[31mno\033[0m\n"
-    printf "Confirm the file 'bin' is present\n"
+    printf "Confirm the file 'trash.sh' is present\n"
     exit 1
 fi
 
