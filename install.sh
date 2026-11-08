@@ -2,8 +2,11 @@
 
 BIN_PATH="/usr/local/bin/trash"
 
-printf "\033[1m[x] Installing script ... "
-cp ./trash.sh "$BIN_PATH" && chmod 755 "$BIN_PATH"
+printf "\033[1m[x] Installing script; sudo password maybe required ... \n\e[0m"
+
+echo sudo cp ./trash.sh "$BIN_PATH" && sudo chmod 755 "$BIN_PATH"
+sudo cp ./trash.sh "$BIN_PATH" && sudo chmod 755 "$BIN_PATH"
+
 if [ $? -ne 0 ]; then
   printf "\033[31mno\033[0m\n"
   printf "Confirm the file 'trash.sh' is present\n"
