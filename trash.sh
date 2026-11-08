@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#! /usr/bin/env bash
 
 BOLD=$'\e[1m'
 RED=$'\e[31;1m'
@@ -63,36 +63,8 @@ hist() {
 
 rand_id() { LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 15; }
 
-# One-time conversion of the old "[date] path:trashpath" index to the epoch format.
-migrate() {
-  [ -f "$LOG_FILE" ] && grep -q '^\[' "$LOG_FILE" || return 0
-  local re='^\[([^]]*)\] (.*):([^:]*)$'
-  local tmp line d src trash ts hl
-  tmp=$(mktemp "$BIN_PATH/.idx.XXXXXX") || return 1
-  while IFS= read -r line; do
-    if [[ $line =~ $re ]]; then
-      d=${BASH_REMATCH[1]}; src=${BASH_REMATCH[2]}; trash=${BASH_REMATCH[3]}
-      ts=$(date -d "$d" +%s 2>/dev/null) || ts=$(date +%s)
-      hl=$(printf '%s  %-9s %s' "$(fmt_date "$ts")" TRASHED "$src")
-      grep -qxF -- "$hl" "$HIST_FILE" 2>/dev/null || printf '%s\n' "$hl" >> "$HIST_FILE"
-      src=${src%/}
-      # items trashed by the old version have broken modes (440), make them usable again
-      if [ -e "$trash" ] && [ ! -L "$trash" ]; then
-        chmod -R u+rwX -- "$trash" 2>/dev/null
-      fi
-      printf '%s\t%s\t%s\n' "$ts" "$src" "$trash" >> "$tmp"
-    else
-      printf '%s\n' "$line" >> "$tmp"
-    fi
-  done < "$LOG_FILE"
-  mv -- "$tmp" "$LOG_FILE"
-  [ -f "$HIST_FILE" ] && LC_ALL=C sort -o "$HIST_FILE" "$HIST_FILE"
-  return 0
-}
-
 trash() {
   mkdir -p "$BIN_PATH" && chmod 700 "$BIN_PATH" || { err "Cannot create $BIN_PATH"; return 1; }
-  migrate
   local -a missing=()
   local failed=0 src dest shown now
   for src in "$@"; do
@@ -143,7 +115,6 @@ restore() {
     warn "Nothing to restore, else confirm log file"
     return 0
   fi
-  migrate
 
   local dest_dir=""
   if [ -n "$R_PATH" ]; then
@@ -219,7 +190,6 @@ empty() {
     warn "Nothing to clean!"
     return 0
   fi
-  migrate
 
   local filter=${1:-down}
   case "$filter" in
@@ -286,3 +256,4 @@ elif [ -n "$E_DATE" ]; then
   empty "$@"
   exit $?
 fi
+
