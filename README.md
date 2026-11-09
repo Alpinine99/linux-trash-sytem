@@ -62,6 +62,8 @@ It fetches the latest commits from `origin`, compares them with your copy, and p
 
    It asks `Do you want to uninstall trash [Y/n]`. Press `y` or just **Enter** to continue; `n` cancels. It removes only `/usr/local/bin/trash`.
 
+   To also delete the trash directory, use `./uninstall.sh --purge`. This asks for a **second confirmation**, and deletes `~/.local/.trash` only if you explicitly answer `y`. This permanently deletes any files and logs still in that directory. The normal `./uninstall.sh` command never deletes the trash directory.
+
 3. **Your trashed files are not touched.** They stay in `~/.local/.trash`, together with the logs. To remove them as well, either empty the trash first (before uninstalling):
 
    ```bash
