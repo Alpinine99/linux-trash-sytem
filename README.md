@@ -1,90 +1,132 @@
-# Trashing Recovery System
+# Trash: a trash and restore command for Linux
 
-A simple Bash-based trash and restore utility that allows you to safely move files to a personal trash directory, inspect logs, restore items, and manage the trash contents.
+`trash` moves files and folders into a private trash directory instead of deleting them, keeps a log of what happened, and lets you restore items or empty the trash by date. It is a single Bash script (`trash.sh`) that the installer copies to `/usr/local/bin/trash`.
 
-## 🔍 Details
+## 📋 Requirements
 
-This is a trash/restore tool implemented in shell script and compiled to a binary file. It maintains a private trash directory and a log of trashed items for easy recovery and cleanup.
+- Linux with Bash
+- GNU coreutils (`date -d`, `realpath`, `mktemp`, `tac`, `tr`) and `awk`
+- `less` (only used by `trash -l` when printing to a terminal)
+- `sudo` (installing and uninstalling write to `/usr/local/bin`)
+
+> macOS and BSD are not supported: their `date`, `realpath` and `tac` behave differently.
 
 ## 📁 Installation
 
-1. Clone the repository:
+1. Clone the repository and move into it:
 
    ```bash
-   git clone https://github.com/Alpinine99/linux-trash-sytem.git binsys
-   cd binsys
+   git clone https://github.com/Alpinine99/linux-trash-sytem.git
+   cd linux-trash-sytem
    ```
 
-2. Run `./install.sh` to create and confirm a compatible environment then install:
+2. Run the installer **from inside the project folder**:
 
    ```bash
    ./install.sh
    ```
 
-   > instructions are given in case of incompatibility, such as missing dependencies.
+   It copies `trash.sh` to `/usr/local/bin/trash` and makes it executable (`sudo` may ask for your password). There is no compile step; the installed command is the script itself.
 
-## 🗑️ Uninstallation
+3. Check it works:
 
-1. Move back to the project folder:
+   ```bash
+   trash -h
+   ```
 
-    ```bash
-    cd binsys
-    ```
+## 🔄 Updating
 
-2. Run `./uninstall.sh` to remove the binary:
+Run this from the cloned folder:
 
-    ```bash
-    ./uninstall.sh
-    ```
+```bash
+./update.sh
+```
 
-> The script uses `bash` and standard Unix utilities such as `mv`, `date`, and `tac`.
+It fetches the latest commits from `origin`, compares them with your copy, and pulls `main` if there is something new. If `trash.sh` changed, it runs `./install.sh` again for you. Otherwise it leaves your installed command alone.
+
+> `update.sh` needs the project to be a git clone on the `main` branch. If you edited files in the clone, commit or stash your changes first or the pull may stop.
+
+## 🧹 Uninstallation
+
+1. Move into the project folder:
+
+   ```bash
+   cd linux-trash-sytem
+   ```
+
+2. Run the uninstaller:
+
+   ```bash
+   ./uninstall.sh
+   ```
+
+   It asks `Do you want to uninstall trash [Y/n]`. Press `y` or just **Enter** to continue; `n` cancels. It removes only `/usr/local/bin/trash`.
+
+3. **Your trashed files are not touched.** They stay in `~/.local/.trash`, together with the logs. To remove them as well, either empty the trash first (before uninstalling):
+
+   ```bash
+   trash -e now          # deletes every trashed item, keeps the logs
+   ```
+
+   or delete the whole folder afterwards (this cannot be undone):
+
+   ```bash
+   rm -rf ~/.local/.trash
+   ```
 
 ## 🛠 Usage
 
 ```bash
-# view this help message
+# show the help message
 trash -h
 
-# get logs
+# trash one or more files or directories
+trash notes.txt old-project/
+
+# show the history (newest first)
 trash -l
 
-# trash one or more files or directories
-trash <file> <file> ...
+# restore an item by file or folder name
+trash -r notes.txt
 
-# restore an item (name or folder)
-trash -r <file/folder name>
+# restore to a different folder
+trash -p ~/Documents -r notes.txt
 
-# restore an item to a custom path
-trash -p <custom path> -r <file/folder name>
-
-# empty trash using a date filter
-trash -e <date/"now"> <up/down>
-
-# examples for emptying:
-trash -e <date|epoch|'now'> <up|down>
-trash -e "2026-03-06 23:57:43" up    # deletes from set date up
-trash -e "7 days ago" down           # deletes from set date down
-
-# clear everything immediately
-trash -e now
+# empty by date: <date | epoch | now> <up | down>
+trash -e "7 days ago" down            # delete items trashed 7 days ago or earlier
+trash -e "2026-03-06 23:57:43" up     # delete items trashed at that time or later
+trash -e now                          # delete everything in the trash
 ```
 
-## 📦 Behavior
+If you leave out `up`/`down`, `down` is used. Dates can be anything GNU `date -d` understands, or a Unix timestamp.
 
-- Trashed items are moved to `~/.local/.trash` and logged to `~/.local/.trash/.trashing.log`.
-- Files are renamed to prevent name collisions and for security using a random suffix.
-- Permissions are restricted on trashed files for safety.
-- When restoring, you are prompted if multiple matches exist.
-- The `-e` option allows selective cleanup based on log timestamps.
+## 📦 How it works
 
-## 📄 Documentation & Examples
+- Trashed items are moved to `~/.local/.trash`, a folder only you can open (permissions `700`).
+- Each item is renamed to a random 15-character ID so two files with the same name never collide. Moving keeps the original file permissions, so nothing needs fixing when you restore.
+- Two log files live in the trash folder:
+  - `.trashing.log` is the index of what is in the trash now: time, original path and trash path, separated by tabs.
+  - `.history.log` is the record of everything that happened (`TRASHED`, `RESTORED`, `DELETED`). `trash -l` shows it newest first.
+- `trash -r <name>` finds items by file name or full original path. If several match, you pick one from a menu. It never overwrites an existing file; use `-p` to restore somewhere else.
+- `trash -e` only ever deletes inside `~/.local/.trash`, even if the index file was edited by hand.
+- `trash` refuses to trash its own trash folder.
 
-For more information and usage examples, check the [repository](https://github.com/Alpinine99/trashing-recovery-system.git).
+## 🩺 Troubleshooting
 
-## ⚠️ Notes
+| Problem | Cause and fix |
+| --- | --- |
+| `cp: cannot stat './trash.sh'` during install | You ran `install.sh` from another folder. `cd` into the project folder first. |
+| `trash: command not found` after installing | `/usr/local/bin` is not in your `PATH`. Add it, or open a new terminal. |
+| `tac: command not found` or `date: illegal option` | Your system is not GNU/Linux. See Requirements. |
+| `'<folder>/<name>' already exists, specify recovery path!` | Something already sits at the original location. Restore with `-p <other folder>`. |
 
-- The script operates on the current user's home directory and respects file permissions.
-- Ensure you do not accidentally trash critical files—restore is possible until the trash is emptied.
+## 🤝 Contributing
+
+Contributions are welcome, and small ones are great. Read [CONTRIBUTING.md](CONTRIBUTING.md) for how to run and test the scripts safely, and look for issues labelled [`good first issue`](https://github.com/Alpinine99/linux-trash-sytem/labels/good%20first%20issue).
+
+## 📄 License
+
+See [LICENSE](LICENSE).
 
 ---
 
