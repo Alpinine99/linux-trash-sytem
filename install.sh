@@ -1,18 +1,24 @@
 #! /usr/bin/env bash
 
 BIN_PATH="/usr/local/bin/trash"
+SCRIPT_PATH="$(dirname -- "${BASH_SOURCE[0]}")/trash.sh"
 
 printf "\033[1m[x] Installing script; sudo password maybe required ... \n\e[0m"
 
-echo "sudo cp ./trash.sh $BIN_PATH && sudo chmod 755 $BIN_PATH"
-sudo cp ./trash.sh "$BIN_PATH" && sudo chmod 755 "$BIN_PATH"
-
-if [ $? -ne 0 ]; then
-  printf "\033[31mno\033[0m\n"
-  printf "Confirm the file 'trash.sh' is present\n"
+if [ ! -f "$SCRIPT_PATH" ]; then
+  printf 'Error: Cannot find trash.sh next to install.sh (%s)\n' "$SCRIPT_PATH" >&2
   exit 1
 fi
 
-printf "\033[34;1m[*] All set, run 'trash # for help'\033[0m\n"
-exit 0
+if ! sudo cp -- "$SCRIPT_PATH" "$BIN_PATH"; then
+  printf 'Error: Could not install trash.sh to %s. Check sudo permissions.\n' "$BIN_PATH" >&2
+  exit 1
+fi
 
+if ! sudo chmod 755 "$BIN_PATH"; then
+  printf 'Error: Could not make %s executable.\n' "$BIN_PATH" >&2
+  exit 1
+fi
+
+printf "\033[34;1m[*] All set, run 'trash -h' for help\033[0m\n"
+exit 0
