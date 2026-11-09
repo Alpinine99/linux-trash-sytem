@@ -186,11 +186,6 @@ restore() {
 }
 
 empty() {
-  if [ ! -s "$LOG_FILE" ]; then
-    warn "Nothing to clean!"
-    return 0
-  fi
-
   local filter=${1:-down}
   case "$filter" in
     up|down) ;;
@@ -207,6 +202,11 @@ empty() {
     cutoff=$(date -d "$E_DATE" +%s 2>/dev/null) || { err "Invalid date!"; return 1; }
   fi
   [ "$cutoff" -gt "$now" ] && err "Invalid date (future date)!" && return 1
+
+  if [ ! -s "$LOG_FILE" ]; then
+    warn "Nothing to clean!"
+    return 0
+  fi
 
   local tmp n=0 ts src trash hit
   tmp=$(mktemp "$BIN_PATH/.idx.XXXXXX") || return 1
