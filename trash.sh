@@ -13,6 +13,7 @@ usage() {
 ${BOLD}Details:${RST}
   This is a trash/restore tool
 ${BOLD}Usage:${RST}${YEL}
+  show help: $bin_name -h
   get logs: $bin_name -l
   trash file: $bin_name <file> <file> ...
   restore file: $bin_name -r <file/folder name>
@@ -22,7 +23,7 @@ ${BOLD}Usage:${RST}${YEL}
          $bin_name -e "7 days ago" down           # deletes from set date down
 ${RST}
 ${BOLD}Documentation and examples:${YEL}
-  Check out ${UL}https://github.com/Alpinine99/trashing-recovery-system.git${RST} for more.
+  Check out ${UL}https://github.com/Alpinine99/linux-trash-sytem${RST} for more.
 EOF
 }
 
