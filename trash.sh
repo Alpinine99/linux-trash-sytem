@@ -8,7 +8,8 @@ UL=$'\e[4;1m'
 RST=$'\e[0m'
 
 usage() {
-	local bin_name=$(basename "$0")
+	local bin_name
+  bin_name=$(basename "$0")
   cat <<EOF
 ${BOLD}Details:${RST}
   This is a trash/restore tool
@@ -65,7 +66,12 @@ hist() {
 rand_id() { LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 15; }
 
 trash() {
-  mkdir -p "$BIN_PATH" && chmod 700 "$BIN_PATH" || { err "Cannot create $BIN_PATH"; return 1; }
+  if mkdir -p "$BIN_PATH"; then
+    chmod 700 "$BIN_PATH"
+  else
+    err "Cannot create $BIN_PATH"
+    return 1
+  fi
   local -a missing=()
   local failed=0 src dest shown now
   for src in "$@"; do
